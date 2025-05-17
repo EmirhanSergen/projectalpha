@@ -7,7 +7,7 @@ import { FaHeart, FaList, FaUser, FaEdit, FaCog, FaStar, FaExclamationCircle } f
 // Mock data - in production, this would come from the backend
 const API_BASE_URL = 'http://localhost:8080/api';
 
-// Mock user profile data for development
+// Mock user user data for development
 const MOCK_USER_PROFILE = {
   id: 'user123',
   name: 'Ahmet',
@@ -86,6 +86,7 @@ const MOCK_USER_REVIEWS = [
 
 const ProfilePage = () => {
   const { userId } = useParams();
+  const {role} = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('profile');
   const [userProfile, setUserProfile] = useState(null);
@@ -110,11 +111,23 @@ const ProfilePage = () => {
       return null;
     }
   };
+  const getUserRoleFromStorage = () => {
+    const userJson = localStorage.getItem('user');
+    if (!userJson) return null;
+    try{
+      const userData = JSON.parse(userJson);
+      return userData.app_metadata.role || null;
+    }catch(e){
+      console.error('There is no role in token.', e);
+      return null;
+    }
+  }
   
-  const currentUserId = userId || getUserIdFromStorage();
+  const currentUserId = userId || getUserIdFromStorage().trim();
+  const currentUserRole = role || getUserRoleFromStorage().trim();
   
   useEffect(() => {
-    // Verify authentication
+    // Verify auth
     const token = localStorage.getItem('token');
     if (!token || !currentUserId) {
       navigate('/');
@@ -137,18 +150,19 @@ const ProfilePage = () => {
             'Authorization': `Bearer ${token}`
           }
         };
-        
-        // Fetch user profile
-        const profileResponse = await axios.get(`${API_BASE_URL}/users/${currentUserId}/profile`, config);
+        // Fetch user user
+        const profileResponse = await axios.get(`${API_BASE_URL}/users/${currentUserRole}/${currentUserId}/profile`);
+        console.log(profileResponse.data.email);
         setUserProfile(profileResponse.data);
         setEditFormData(profileResponse.data);
+
         
         // Fetch user lists
-        const listsResponse = await axios.get(`${API_BASE_URL}/users/${currentUserId}/lists`, config);
+        const listsResponse = await axios.get(`${API_BASE_URL}/users/${currentUserRole}/${currentUserId}/lists`);
         setUserLists(listsResponse.data);
         
         // Fetch user reviews
-        const reviewsResponse = await axios.get(`${API_BASE_URL}/users/${currentUserId}/reviews`, config);
+        const reviewsResponse = await axios.get(`${API_BASE_URL}/users/${currentUserRole}/${currentUserId}/reviews`);
         setUserReviews(reviewsResponse.data);
         
         setIsLoading(false);
@@ -163,9 +177,7 @@ const ProfilePage = () => {
         }
         
         // For development, use mock data
-        console.log('Using mock data for profile page development');
-        setUserProfile(MOCK_USER_PROFILE);
-        setEditFormData(MOCK_USER_PROFILE);
+        console.log('Using mock data for user page development');
         setUserLists(MOCK_USER_LISTS);
         setUserReviews(MOCK_USER_REVIEWS);
         setUseMockData(true);
@@ -179,15 +191,24 @@ const ProfilePage = () => {
   
   const handleProfileEdit = (e) => {
     e.preventDefault();
-    
-    // Save profile changes
-    axios.put(`${API_BASE_URL}/users/${currentUserId}/profile`, editFormData)
+    const requestBody = {
+        email: editFormData.email.trim(),
+        role: currentUserRole,
+        requestDiner: {
+          name: editFormData.name.trim(),
+          surname: editFormData.surname.trim(),
+          phone_numb: editFormData.phone.trim(),
+        }
+      }
+
+    // Save user changes
+    axios.put(`${API_BASE_URL}/users/${currentUserRole}/${currentUserId}/profile`, requestBody)
       .then(response => {
         setUserProfile(editFormData);
         setIsEditing(false);
       })
       .catch(err => {
-        console.error('Error updating profile:', err);
+        console.error('Error updating user:', err);
         // In development, we'll just update the UI anyway
         setUserProfile(editFormData);
         setIsEditing(false);
