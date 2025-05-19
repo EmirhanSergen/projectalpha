@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { FaStar, FaMapMarkerAlt, FaHeart, FaRegHeart, FaArrowLeft, FaChevronLeft, FaChevronRight, FaTag, FaTimes, FaSearchPlus, FaSearchMinus } from 'react-icons/fa';
-import { getRestaurantById, getFavorites, toggleFavorite as toggleFavoriteService } from '../services/restaurantService';
+import { getBusinessById as getRestaurantById, getFavorites, toggleFavorite as toggleFavoriteService } from "../services/businessService";
 import '../styles/RestaurantDetailPage.css';
 import RestaurantReviews from "../components/RestaurantDetailComponents/RestaurantReviews.jsx";
 
@@ -258,10 +258,10 @@ const RestaurantDetailPage = () => {
           </button>
           
           <div className="carousel-container">
-            <img 
-              src={demoImages[currentImageIndex] || restaurant.image} 
-              alt={`${restaurant.name} - fotoğraf ${currentImageIndex + 1}`} 
-              className="carousel-image" 
+            <img
+              src={demoImages[currentImageIndex] || restaurant.image}
+              alt={`${restaurant.name} - fotoğraf ${currentImageIndex + 1}`}
+              className="carousel-image"
               onClick={handleMainImageClick}
               style={{ cursor: 'pointer' }}
             />

@@ -1,21 +1,16 @@
 package com.projectalpha.dto.business.address;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
+import java.util.UUID;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
 @Data
 public class AddressDTO {
-
-    private String id;
-
+    private UUID id;
     private String street;
-
     private String city;
-
-    private String district;
-
-    private String neighborhood;
-
-    private String business_id;
+    private String state;
+    private String zipCode;
+    private String country;
+    private Double latitude;
+    private Double longitude;
 }

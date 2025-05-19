@@ -16,6 +16,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -207,7 +210,7 @@ public class OwnerRepositoryImpl implements OwnerRepository {
 
         BusinessDTO[] businesses = mapper.readValue(businessResponse.body(), BusinessDTO[].class);
         BusinessDTO createdBusiness = businesses[0];
-        String businessId = createdBusiness.getId();
+        String businessId = createdBusiness.getId().toString();
         // 2. Address oluştur (POST)
         Map<String, Object> addressPayload = Map.of(
                 "city", request.getRequestAddress().getCity(),
@@ -230,7 +233,7 @@ public class OwnerRepositoryImpl implements OwnerRepository {
 
         AddressDTO[] addresses = mapper.readValue(addressResponse.body(), AddressDTO[].class);
         AddressDTO createdAddress = addresses[0];
-        String addressId = createdAddress.getId();
+        String addressId = createdAddress.getId().toString();
         // 3. Business'a addressId ekle (PATCH)
         Map<String, Object> updateBusinessPayload = Map.of(
                 "addresses", addressId
@@ -262,7 +265,11 @@ public class OwnerRepositoryImpl implements OwnerRepository {
 
         //owner_id ile satırı bul. ilgili kolonun bilgilerini değiştir.
         String column = "id";
-        String url = supabaseConfig.getSupabaseUrl() + "/rest/v1/user_profile_owner?select=" + column + "&owner_id=eq." + ownerId;
+        String url = supabaseConfig.getSupabaseUrl() +
+                "/rest/v1/user_profile_owner?select=" + URLEncoder.encode(column, StandardCharsets.UTF_8) +
+                "&owner_id=eq." + URLEncoder.encode(ownerId, StandardCharsets.UTF_8);
+
+
 
         HttpRequest profileRequest = HttpRequest.newBuilder()
                 .uri(URI.create(url))
@@ -276,7 +283,7 @@ public class OwnerRepositoryImpl implements OwnerRepository {
         httpClient.send(profileRequest, HttpResponse.BodyHandlers.discarding());
 
          //Son olarak güncellenmiş business objesini döndür
-        createdBusiness.setAddress(addressId);
+        createdBusiness.setAddressId(UUID.fromString(addressId));
         return createdBusiness;
     }
 }

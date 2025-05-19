@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FaStar, FaMapMarkerAlt, FaHeart, FaRegHeart, FaTag } from 'react-icons/fa';
 import './RestaurantCard.css';
@@ -13,6 +13,14 @@ import './RestaurantCard.css';
 const RestaurantCard = ({ restaurant, favorites, toggleFavorite, featured = false }) => {
   const { id, name, type, distance, rating, image, priceRange, hasActivePromo, promoDetails } = restaurant;
   const isFavorite = favorites.includes(id);
+
+  // Varsayılan görüntü URL'leri
+  const defaultImageUrl = `https://images.unsplash.com/photo-1555396273-367ea4eb4db5?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80`;
+
+
+  // Görüntü hata durumunu izlemek için state
+  const [imageError, setImageError] = useState(false);
+
 
   return (
     <div className={`restaurant-card ${featured ? 'featured' : ''}`}>

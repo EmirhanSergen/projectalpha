@@ -23,7 +23,7 @@ import ConfirmationPopup from '../components/HomePageComponents/ConfirmationPopu
 import RegisterEmailPopup from '../components/HomePageComponents/RegisterEmailPopup';
 import SetPasswordPopup from '../components/HomePageComponents/SetPasswordPopup';
 import RestaurantList from '../components/HomePageComponents/RestaurantList';
-import { getFeaturedRestaurants, getRestaurants } from '../services/restaurantService';
+import { getBusinesses, getFeaturedBusinesses, searchBusinesses } from '../services/businessService';
 import { login, saveAuthData } from '../services/authService';
 import axios from "axios";
 import {getUserIdFromStorage, getUserRoleFromStorage, fetchUserData} from '../services/userService';
@@ -63,7 +63,13 @@ const HomePage = () => {
     // Location state
     const [userLocation, setUserLocation] = useState(null);
     const [locationStatus, setLocationStatus] = useState('idle'); // 'idle', 'loading', 'success', 'error'
-    
+
+    // Business state
+    const [businesses, setBusinesses] = useState([]);
+    const [featuredBusinesses, setFeaturedBusinesses] = useState([]);
+    const [isLoadingBusinesses, setIsLoadingBusinesses] = useState(true);
+
+
     // Featured restaurants
     const [featuredRestaurants, setFeaturedRestaurants] = useState([]);
     const [isLoadingFeatured, setIsLoadingFeatured] = useState(true);
@@ -85,22 +91,38 @@ const HomePage = () => {
     // Get user location when component mounts
     useEffect(() => {
         getUserLocation();
-        loadFeaturedRestaurants();
+        loadFeaturedBusinesses();
+        loadAllBusinesses();
     }, []);
-    
-    // Load featured restaurants
-    const loadFeaturedRestaurants = async () => {
+
+    // İşletmeleri yükle
+    const loadAllBusinesses = async () => {
+        try {
+            setIsLoadingBusinesses(true);
+            const data = await getBusinesses();
+            setBusinesses(data);
+            console.log('Yüklenen işletmeler:', data);
+        } catch (err) {
+            console.error('İşletmeler yüklenirken hata oluştu:', err);
+        } finally {
+            setIsLoadingBusinesses(false);
+        }
+    };
+
+    // Öne çıkan işletmeleri yükle
+    const loadFeaturedBusinesses = async () => {
         try {
             setIsLoadingFeatured(true);
-            const data = await getFeaturedRestaurants();
-            setFeaturedRestaurants(data);
+            const data = await getFeaturedBusinesses();
+            setFeaturedBusinesses(data);
         } catch (err) {
-            console.error('Error loading featured restaurants:', err);
+            console.error('Öne çıkan işletmeler yüklenirken hata oluştu:', err);
         } finally {
             setIsLoadingFeatured(false);
         }
     };
-    
+
+
     // Get user's geolocation
     const getUserLocation = () => {
         if (navigator.geolocation) {
@@ -123,27 +145,23 @@ const HomePage = () => {
             console.error('Geolocation is not supported by this browser.');
         }
     };
-    
-    // Handle search submission
+
+    // Arama fonksiyonu
     const handleSearch = async (e) => {
         e.preventDefault();
-        
         if (!searchTerm.trim()) return;
-        
+
         try {
             setIsSearching(true);
-            const results = await getRestaurants({ 
-                searchTerm: searchTerm,
-                ...activeFilters
-            });
+            const results = await searchBusinesses(searchTerm);
             setSearchResults(results);
-        } catch (err) {
-            console.error('Error searching restaurants:', err);
-        } finally {
+            setIsSearching(false);
+        } catch (error) {
+            console.error('Arama sırasında hata oluştu:', error);
             setIsSearching(false);
         }
     };
-    
+
     // Clear search results
     const clearSearch = () => {
         setSearchTerm('');
@@ -714,53 +732,74 @@ const HomePage = () => {
                 {/* Featured Restaurants Section */}
                 {featuredRestaurants.length > 0 && !isLoadingFeatured && (
                     <section className="featured-section">
-                        <h2 className="section-heading">Öne Çıkan Restoranlar</h2>
-                        <div className="featured-cards">
-                            {featuredRestaurants.map(restaurant => (
-                                <Link 
-                                    to={`/restaurant/${restaurant.id}`} 
-                                    className="restaurant-card featured" 
-                                    key={restaurant.id}
-                                >
-                                    <div className="card-header">
-                                        <img src={restaurant.image} alt={restaurant.name} className="restaurant-img" />
-                                        {restaurant.hasActivePromo && (
-                                            <div className="promo-tag">
-                                                <FaStar className="promo-icon" />
-                                                <span>{restaurant.promoDetails}</span>
+                        <div className="container">
+                            <h2 className="section-title">Öne Çıkan İşletmeler</h2>
+
+                            {isLoadingFeatured ? (
+                                <div className="loading">Yükleniyor...</div>
+                            ) : (
+                                <div className="featured-grid">
+                                    {featuredBusinesses.length > 0 ? (
+                                        featuredBusinesses.map(business => (
+                                            <div key={business.id} className="featured-card"
+                                                 onClick={() => navigate(`/business/${business.id}`)}>
+                                                <div className="card-image">
+                                                    <img src={business.image_url || 'https://via.placeholder.com/300x200'}
+                                                         alt={business.name} />
+                                                </div>
+                                                <div className="card-content">
+                                                    <h3>{business.name}</h3>
+                                                    <p>{business.description || 'Açıklama bulunmuyor'}</p>
+                                                </div>
                                             </div>
-                                        )}
-                                    </div>
-                                    <div className="card-body">
-                                        <div className="card-top">
-                                            <h3 className="restaurant-title">{restaurant.name}</h3>
-                                            <span className="price-range">{restaurant.priceRange}</span>
-                                        </div>
-                                        <div className="restaurant-details">
-                                            <span className="restaurant-type">{restaurant.type}</span>
-                                            <div className="distance">
-                                                <FaMapMarkerAlt className="location-icon" />
-                                                <span>{restaurant.distance}</span>
-                                            </div>
-                                        </div>
-                                        <div className="rating-container">
-                                            <FaStar className="star-icon" />
-                                            <span className="rating-value">{restaurant.rating}</span>
-                                        </div>
-                                    </div>
-                                </Link>
-                            ))}
+                                        ))
+                                    ) : (
+                                        <p>Henüz öne çıkan işletme bulunmuyor.</p>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </section>
                 )}
 
                 {/* All Restaurants Section */}
-                <section className="all-restaurants-section">
-                    <RestaurantList 
-                        title="Restoranları Keşfedin" 
-                        filters={activeFilters} 
-                        useGrid={true} 
-                    />
+                <section className="businesses-section">
+                    <div className="container">
+                        <h2 className="section-title">
+                            {searchResults.length > 0 ? 'Arama Sonuçları' : 'Tüm İşletmeler'}
+                        </h2>
+
+                        {isLoadingBusinesses ? (
+                            <div className="loading">Yükleniyor...</div>
+                        ) : (
+                            <div className="businesses-grid">
+                                {(searchResults.length > 0 ? searchResults : businesses).map(business => (
+                                    <div key={business.id} className="business-card"
+                                         onClick={() => navigate(`/business/${business.id}`)}>
+                                        <div className="card-image">
+                                            <img
+                                                src={business.image_url || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=200&q=80'}
+                                                alt={business.name}
+                                            />
+
+                                        </div>
+                                        <div className="card-content">
+                                            <h3>{business.name}</h3>
+                                            <p>{business.description || 'Açıklama bulunmuyor'}</p>
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {(searchResults.length === 0 && isSearching) && (
+                                    <p>Arama sonucu bulunamadı.</p>
+                                )}
+
+                                {(businesses.length === 0 && !isSearching) && (
+                                    <p>Henüz işletme bulunmuyor.</p>
+                                )}
+                            </div>
+                        )}
+                    </div>
                 </section>
             </main>
             

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import RestaurantCard from './RestaurantCard';
 import './RestaurantList.css';
-import { getRestaurants, getFavorites } from '../../services/restaurantService';
+import { getBusinesses as getRestaurants, getFavorites } from "../../services/businessService";
 import { FaSort, FaFilter } from 'react-icons/fa';
 
 /**
