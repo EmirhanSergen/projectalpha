@@ -1,120 +1,160 @@
 package com.projectalpha.service.user;
 
-/*import com.projectalpha.dto.ListDTO;
-import com.projectalpha.dto.ReviewDTO;
-import com.projectalpha.dto.UserProfileDTO;*/
-import com.projectalpha.dto.business.Business;
-import com.projectalpha.dto.business.BusinessDTO;
-import com.projectalpha.dto.user.diner.DinerUpdateRequest;
-import com.projectalpha.dto.user.diner.DinerUserProfile;
-import com.projectalpha.dto.user.owner.OwnerLoginResponse;
-import com.projectalpha.dto.user.owner.OwnerUserProfile;
-import com.projectalpha.repository.user.diner.DinerRepository;
-import com.projectalpha.repository.user.diner.custom_lists.listItem.FavoritesRepository;
-import com.projectalpha.repository.user.owner.OwnerRepository;
+import com.projectalpha.dto.user.diner.request.DinerUpdateRequest;
+import com.projectalpha.dto.user.diner.response.DinerProfileResponse;
+import com.projectalpha.dto.user.owner.profile.OwnerUserProfile;
+import com.projectalpha.dto.user.owner.response.OwnerLoginResponse;
+import com.projectalpha.mapper.DinerMapper;
+import com.projectalpha.mapper.OwnerMapper;
+import com.projectalpha.model.business.Business;
+import com.projectalpha.model.user.UserProfileDiner;
+import com.projectalpha.model.user.UserProfileOwner;
+import com.projectalpha.repository.user.UserProfileDinerRepository;
+import com.projectalpha.repository.user.UserProfileOwnerRepository;
 import com.projectalpha.service.user.diner.DinerService;
 import com.projectalpha.service.user.owner.OwnerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
-//import java.util.List;
-
+/**
+ * Kullanıcı servisi - Hem müşteri (diner) hem de işletme sahibi (owner) işlemlerini yönetir.
+ */
 @Service
+@Transactional
 public class UserService implements DinerService, OwnerService {
-
-    private final DinerRepository dinerRepository;
-    private final OwnerRepository ownerRepository;
-    private final FavoritesRepository favoritesRepository;
+    private final UserProfileDinerRepository dinerRepository;
+    private final UserProfileOwnerRepository ownerRepository;
+    private final DinerMapper dinerMapper;
+    private final OwnerMapper ownerMapper;
 
     @Autowired
-    public UserService(DinerRepository dinerRepository, OwnerRepository ownerRepository, FavoritesRepository favoritesRepository) {
+    public UserService(
+            UserProfileDinerRepository dinerRepository,
+            UserProfileOwnerRepository ownerRepository,
+            DinerMapper dinerMapper,
+            OwnerMapper ownerMapper) {
         this.dinerRepository = dinerRepository;
         this.ownerRepository = ownerRepository;
-        this.favoritesRepository = favoritesRepository;
+        this.dinerMapper = dinerMapper;
+        this.ownerMapper = ownerMapper;
     }
 
     @Override
-    public Optional<DinerUserProfile> getDinerProfileByUserId(String userId) {
-        return dinerRepository.findDinerByID(userId);
+    @Transactional(readOnly = true)
+    public Optional<DinerProfileResponse> getDinerProfileByUserId(String userId) {
+        if (userId == null || userId.isEmpty()) {
+            throw new IllegalArgumentException("Kullanıcı ID boş olamaz");
+        }
+
+        try {
+            UUID userUuid = UUID.fromString(userId);
+            Optional<UserProfileDiner> dinerOptional = dinerRepository.findById(userUuid);
+
+            // Entity'i DTO'ya dönüştürme
+            return dinerOptional.map(dinerMapper::toDto);
+        } catch (IllegalArgumentException e) {
+            // UUID dönüşümünde hata olursa
+            throw new IllegalArgumentException("Geçersiz kullanıcı ID formatı: " + userId, e);
+        }
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Optional<OwnerLoginResponse> getOwnerProfileByUserId(String userId) {
-        return ownerRepository.findOwnerByID(userId);
+        if (userId == null || userId.isEmpty()) {
+            throw new IllegalArgumentException("Kullanıcı ID boş olamaz");
+        }
+
+        try {
+            UUID userUuid = UUID.fromString(userId);
+            Optional<UserProfileOwner> ownerOptional = ownerRepository.findById(userUuid);
+
+            // Entity'i DTO'ya dönüştürme
+            return ownerOptional.map(ownerMapper::toLoginResponse);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Geçersiz kullanıcı ID formatı: " + userId, e);
+        }
     }
 
     @Override
+    @Transactional
     public void updateProfile(String userId, DinerUpdateRequest request) {
-        dinerRepository.updateDinerProfile(userId, request);
+        if (userId == null || userId.isEmpty()) {
+            throw new IllegalArgumentException("Kullanıcı ID boş olamaz");
+        }
+        if (request == null) {
+            throw new IllegalArgumentException("Güncelleme isteği boş olamaz");
+        }
+
+        try {
+            UUID userUuid = UUID.fromString(userId);
+
+            // Kullanıcıyı bul
+            UserProfileDiner diner = dinerRepository.findById(userUuid)
+                    .orElseThrow(() -> new IllegalArgumentException("Kullanıcı bulunamadı: " + userId));
+
+            // DTO'dan gelen verilerle entity'i güncelle
+            dinerMapper.updateEntityFromDto(request, diner);
+
+            // Güncellenmiş entity'i kaydet
+            dinerRepository.save(diner);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Geçersiz kullanıcı ID formatı veya kullanıcı bulunamadı: " + userId, e);
+        }
     }
 
     @Override
+    @Transactional
     public void updateProfile(String userId, OwnerUserProfile profile) {
-        ownerRepository.updateOwnerProfile(userId, profile);
+        if (userId == null || userId.isEmpty()) {
+            throw new IllegalArgumentException("Kullanıcı ID boş olamaz");
+        }
+        if (profile == null) {
+            throw new IllegalArgumentException("Profil boş olamaz");
+        }
+
+        try {
+            UUID userUuid = UUID.fromString(userId);
+
+            // Kullanıcıyı bul
+            UserProfileOwner owner = ownerRepository.findById(userUuid)
+                    .orElseThrow(() -> new IllegalArgumentException("İşletme sahibi bulunamadı: " + userId));
+
+            // DTO'dan gelen verilerle entity'i güncelle
+            ownerMapper.updateEntityFromProfile(profile, owner);
+
+            // Güncellenmiş entity'i kaydet
+            ownerRepository.save(owner);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Geçersiz kullanıcı ID formatı veya kullanıcı bulunamadı: " + userId, e);
+        }
     }
+
     @Override
+    @Transactional(readOnly = true)
     public List<Business> getDinerFavorites(String userId) {
-        return favoritesRepository.getDinerFavorites(userId);
+        // TODO: Bu metod ileride implemente edilecek
+        return new ArrayList<>(); // Şimdilik boş liste döndür
     }
+    /*
+    @Override
+    @Transactional(readOnly = true)
+    public List<Business> getDinerFavorites(String userId) {
+        if (userId == null || userId.isEmpty()) {
+            throw new IllegalArgumentException("Kullanıcı ID boş olamaz");
+        }
+
+        try {
+            UUID userUuid = UUID.fromString(userId);
+            return favoritesRepository.getDinerFavorites(userUuid);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Geçersiz kullanıcı ID formatı: " + userId, e);
+        }
+    }*/
 }
-
-
-// /**
-// * Service interface for user-related operations
-// */
-// old implementations
-// /**
-// */
-// * Update a user's user information
-// *
-// * @param userId The ID of the user
-// * @param profileData The updated user data
-// */
-//void updateUserProfile(String userId, UserProfileDTO profileData);
-
-// /**
-// * Get all lists for a user (including favorites)
-// *
-// * @param userId The ID of the user
-// * @return List of user's lists
-// */
-// List<ListDTO> getUserLists(String userId);
-
-// /**
-// * Create a new list for a user
-// *
-// * @param userId The ID of the user
-// * @param listName The name of the new list
-// * @return The created list
-// */
-// ListDTO createList(String userId, String listName);
-
-// /**
-// * Add a business to a user's list
-// *
-// * @param userId The ID of the user
-// * @param listId The ID of the list
-// * @param businessId The ID of the business to add
-// */
-// void addBusinessToList(String userId, String listId, String businessId);
-
-// /**
-// * Remove a business from a user's list
-// *
-// * @param userId The ID of the user
-// * @param listId The ID of the list
-// * @param businessId The ID of the business to remove
-// */
-// void removeBusinessFromList(String userId, String listId, String businessId);
-
-// /**
-// * Get all reviews written by a user
-// *
-// * @param userId The ID of the user
-// * @return List of user's reviews
-// */
-// List<ReviewDTO> getUserReviews(String userId);
-//

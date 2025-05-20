@@ -1,6 +1,7 @@
 package com.projectalpha.controller.business;
 
-import com.projectalpha.dto.business.BusinessDTO;
+
+import com.projectalpha.dto.business.BusinessDto;
 import com.projectalpha.service.business.BusinessService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -21,19 +22,19 @@ public class BusinessController {
     }
 
     @GetMapping
-    public ResponseEntity<List<BusinessDTO>> getAllBusinesses() {
+    public ResponseEntity<List<BusinessDto>> getAllBusinesses() {
         return ResponseEntity.ok(businessService.getAllBusinesses());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<BusinessDTO> getBusinessById(@PathVariable UUID id) {
+    public ResponseEntity<BusinessDto> getBusinessById(@PathVariable UUID id) {
         return businessService.getBusinessById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/search")
-    public ResponseEntity<List<BusinessDTO>> searchBusinesses(@RequestParam String query) {
+    public ResponseEntity<List<BusinessDto>> searchBusinesses(@RequestParam String query) {
         return ResponseEntity.ok(businessService.searchBusinesses(query));
     }
 }

@@ -4,17 +4,16 @@ import com.projectalpha.controller.user.diner.DinerController;
 import com.projectalpha.controller.user.diner.favorite.FavoritesController;
 import com.projectalpha.controller.user.diner.list.ListsController;
 import com.projectalpha.controller.user.owner.OwnerController;
-import com.projectalpha.dto.business.Business;
-import com.projectalpha.dto.business.BusinessDTO;
-import com.projectalpha.dto.user.diner.DinerUpdateRequest;
-import com.projectalpha.dto.user.diner.custom_lists.CustomListRequest;
-import com.projectalpha.dto.user.diner.custom_lists.listItem.CustomListItemRequest;
+import com.projectalpha.dto.business.BusinessDto;
+import com.projectalpha.dto.list.request.CustomListRequest;
+import com.projectalpha.dto.user.diner.request.DinerUpdateRequest;
+import com.projectalpha.dto.user.owner.profile.OwnerUserProfile;
+import com.projectalpha.model.business.Business;
 import com.projectalpha.service.user.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import com.projectalpha.dto.user.owner.OwnerUserProfile;
 
 import java.util.List;
 
@@ -86,17 +85,20 @@ public class UserController implements DinerController, OwnerController, ListsCo
         List<Business> favorites = userService.getDinerFavorites(userId);
         return ResponseEntity.ok(favorites);
     }
+
     @Override
     @PostMapping("/diner_user/{userId}/favorites")
     public ResponseEntity<?> createDinerFavoriteItem(@PathVariable(name = "userId") String userId, @RequestBody CustomListItemRequest createRequest){
         return ResponseEntity.status(501).body("createDinerFavoriteItem() not implemented");
     }
+
     @Override
     @PatchMapping("/diner_user/{userId}/favorites/{listItemId}")
     public ResponseEntity<?> removeDinerFavoriteItem(@PathVariable(name = "userId") String userId,
                                                      @PathVariable(name = "listItemId") String listItemId) {
         return ResponseEntity.status(501).body("removeDinerFavorite() not implemented");
     }
+
     @Override
     @PutMapping("/diner_user/{userId}/favorites/{listItemId}/add_to/{listId}")
     public ResponseEntity<?> addDinerFavoriteItem(@PathVariable String userId, @PathVariable String listItemId, @PathVariable String listId) {

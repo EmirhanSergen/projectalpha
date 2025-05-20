@@ -1,23 +1,28 @@
 package com.projectalpha.repository.business;
 
-import com.projectalpha.dto.business.BusinessDTO;
+import com.projectalpha.model.business.Business;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 public interface BusinessRepository {
-    /**
-     * Tüm işletmeleri listeler
-     */
-    List<BusinessDTO> findAll();
 
-    /**
-     * ID'ye göre işletme bulur
-     */
-    Optional<BusinessDTO> findById(UUID id);
+    List<Business> findAll();
 
-    /**
-     * Metin aramasına göre işletmeleri bulur
-     */
-    List<BusinessDTO> search(String query);
+    Optional<Business> findById(UUID id);
+
+    Optional<Business> findByName(String name);
+
+    List<Business> findByNameContaining(String name);
+
+    List<Business> findByLocation(String location);
+
+    List<Business> findByCategory(String category);
+
+    Business save(Business business);
+
+    void deleteById(UUID id);
+
+
 }

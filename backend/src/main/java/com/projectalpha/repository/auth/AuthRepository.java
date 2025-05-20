@@ -1,36 +1,30 @@
 package com.projectalpha.repository.auth;
 
+import com.projectalpha.dto.auth.UserDto;
+import com.projectalpha.dto.auth.request.AuthRequestDto;
+import com.projectalpha.dto.auth.response.AuthResponseDto;
 import com.projectalpha.dto.thirdparty.SupabaseTokenResponse;
-import org.springframework.stereotype.Repository;
 
-/**
- * Repository interface for auth operations with Supabase.
- */
-@Repository
+import java.util.Optional;
+
 public interface AuthRepository {
-    
-    /**
-     * Send a verification code to the provided email
-     * 
-     * @param email Email to send the verification code to
-     */
-    void sendVerificationCode(String email) throws Exception;
-    
-    /**
-     * Verify a token for the given email
-     * 
-     * @param email The email associated with the token
-     * @param token The verification token
-     * @return The Supabase token response
-     */
-    SupabaseTokenResponse verifyToken(String email, String token) throws Exception;
-    
-    /**
-     * Authenticate a user with email and password
-     * 
-     * @param email User's email
-     * @param password User's password
-     * @return The Supabase token response with auth tokens and user info
-     */
-    SupabaseTokenResponse authenticateUser(String email, String password) throws Exception;
-} 
+
+    AuthResponseDto signUp(AuthRequestDto authRequest);
+
+    AuthResponseDto signIn(AuthRequestDto authRequest);
+
+    void signOut(String accessToken);
+
+    Optional<UserDto> getCurrentUser(String accessToken);
+
+    void resetPassword(String email);
+
+    AuthResponseDto refreshToken(String refreshToken);
+
+    void sendVerificationCode(String email);
+
+    SupabaseTokenResponse verifyToken(String email, String token);
+
+    void updatePassword(String email, String newPassword);
+
+}
