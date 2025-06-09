@@ -1,18 +1,11 @@
 package com.projectalpha.repository.business.impl;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.projectalpha.config.thirdparty.SupabaseConfig;
+import com.projectalpha.repository.util.SupabaseHttpHelper;
 import com.projectalpha.dto.business.BusinessDTO;
 import com.projectalpha.repository.business.BusinessRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -23,48 +16,19 @@ import java.util.UUID;
 @Repository
 public class BusinessRepositoryImpl implements BusinessRepository {
 
-    private final SupabaseConfig supabaseConfig;
-    private final HttpClient httpClient;
-    private final ObjectMapper objectMapper;
+    private final SupabaseHttpHelper httpHelper;
 
     @Autowired
-    public BusinessRepositoryImpl(SupabaseConfig supabaseConfig) {
-        this.supabaseConfig = supabaseConfig;
-        this.httpClient = HttpClient.newHttpClient();
-        this.objectMapper = new ObjectMapper();
+    public BusinessRepositoryImpl(SupabaseHttpHelper httpHelper) {
+        this.httpHelper = httpHelper;
     }
 
     private List<BusinessDTO> fetchList(String path) {
-        try {
-            String url = supabaseConfig.getSupabaseUrl() + "/rest/v1/" + path;
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .header("apikey", supabaseConfig.getSupabaseApiKey())
-                    .header("Authorization", "Bearer " + supabaseConfig.getSupabaseSecretKey())
-                    .header("Content-Type", "application/json")
-                    .GET()
-                    .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() >= 400) {
-                throw new RuntimeException("Request failed [" + path + "]: " + response.body());
-            }
-
-            JsonNode root = objectMapper.readTree(response.body());
-            List<BusinessDTO> result = new ArrayList<>();
-            for (JsonNode node : root) {
-                result.add(objectMapper.treeToValue(node, BusinessDTO.class));
-            }
-            return result;
-
-        } catch (Exception e) {
-            throw new RuntimeException("Error fetching " + path, e);
-        }
+        return httpHelper.fetchList(path, BusinessDTO.class);
     }
 
     private BusinessDTO fetchSingle(String path) {
-        List<BusinessDTO> list = fetchList(path);
-        return list.isEmpty() ? null : list.get(0);
+        return httpHelper.fetchSingle(path, BusinessDTO.class);
     }
 
     @Override
