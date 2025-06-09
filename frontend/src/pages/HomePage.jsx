@@ -373,7 +373,6 @@ const HomePage = () => {
 
             const role = "diner_user";
             const authData = await login(userLoginEmail, userLoginPassword, role);
-            console.log('Kullanıcı girişi başarılı');
 
             // Store tokens using authService
             saveAuthData(authData);
@@ -439,7 +438,6 @@ const HomePage = () => {
             saveAuthData(authData);
             closePopup();
 
-            console.log('İşletme girişi başarılı');
             closePopup();
 
             localStorage.setItem("shouldRunAfterReload", "true");
@@ -495,7 +493,6 @@ const HomePage = () => {
                 localStorage.setItem('refreshToken', refresh_token);
                 localStorage.setItem('user', JSON.stringify(user));
                 
-                console.log('Otomatik giriş başarılı');
             } catch (loginErr) {
                 console.error('Otomatik giriş başarısız:', loginErr);
                 // Otomatik giriş hatasını göstermeyin

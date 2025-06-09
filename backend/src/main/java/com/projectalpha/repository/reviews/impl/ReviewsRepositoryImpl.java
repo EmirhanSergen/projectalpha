@@ -6,6 +6,8 @@ import com.projectalpha.config.thirdparty.SupabaseConfig;
 import com.projectalpha.dto.review.ReviewSupabase;
 import com.projectalpha.dto.review.newReviewRequest;
 import com.projectalpha.repository.reviews.ReviewsRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
@@ -24,6 +26,7 @@ public class ReviewsRepositoryImpl implements ReviewsRepository {
     private final SupabaseConfig supabaseConfig;
     private final HttpClient httpClient = HttpClient.newHttpClient();
     private final ObjectMapper mapper = new ObjectMapper();
+    private static final Logger logger = LoggerFactory.getLogger(ReviewsRepositoryImpl.class);
 
     @Autowired
     public ReviewsRepositoryImpl(SupabaseConfig supabaseConfig) {this.supabaseConfig = supabaseConfig;}
@@ -100,7 +103,7 @@ public class ReviewsRepositoryImpl implements ReviewsRepository {
                 throw new RuntimeException("Review kaydedilemedi: " + response.body());
             }
 
-            System.out.println("Review başarıyla oluşturuldu: " + response.body());
+            logger.info("Review başarıyla oluşturuldu: {}", response.body());
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -175,7 +178,7 @@ public class ReviewsRepositoryImpl implements ReviewsRepository {
                 throw new RuntimeException("Review kaydedilemedi: " + response.body());
             }
 
-            System.out.println("Review başarıyla oluşturuldu: " + response.body());
+            logger.info("Review başarıyla oluşturuldu: {}", response.body());
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -201,7 +204,7 @@ public class ReviewsRepositoryImpl implements ReviewsRepository {
                 throw new RuntimeException("Review görüntülenemedi: " + response.body());
             }
 
-            System.out.println("Review görüntülendi: " + response.body());
+            logger.info("Review görüntülendi: {}", response.body());
 
         } catch (Exception e) {
             e.printStackTrace();

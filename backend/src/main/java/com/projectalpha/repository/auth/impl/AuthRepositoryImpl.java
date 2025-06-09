@@ -6,6 +6,8 @@ import com.projectalpha.dto.thirdparty.SupabaseTokenResponse;
 import com.projectalpha.exception.auth.InvalidLoginCredentials;
 import com.projectalpha.exception.auth.VerificationCodeNotCorrect;
 import com.projectalpha.repository.auth.AuthRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
@@ -20,6 +22,7 @@ public class AuthRepositoryImpl implements AuthRepository {
     private final SupabaseConfig supabaseConfig;
     private final HttpClient httpClient = HttpClient.newHttpClient();
     private final ObjectMapper mapper = new ObjectMapper();
+    private static final Logger logger = LoggerFactory.getLogger(AuthRepositoryImpl.class);
 
     @Autowired
     public AuthRepositoryImpl(SupabaseConfig supabaseConfig) {
@@ -28,8 +31,8 @@ public class AuthRepositoryImpl implements AuthRepository {
 
     @Override
     public void sendVerificationCode(String email) throws Exception {
-        System.out.println("Sending verification code to email: " + email);
-        System.out.println("Supabase URL: " + supabaseConfig.getSupabaseUrl());
+        logger.info("Sending verification code to email: {}", email);
+        logger.debug("Supabase URL: {}", supabaseConfig.getSupabaseUrl());
         
         String requestBody = """
                 {
@@ -39,7 +42,7 @@ public class AuthRepositoryImpl implements AuthRepository {
                 }
             """.formatted(email);
         
-        System.out.println("Request body: " + requestBody);
+        logger.debug("Request body: {}", requestBody);
         
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(supabaseConfig.getSupabaseUrl() + "/auth/v1/otp"))
@@ -50,8 +53,8 @@ public class AuthRepositoryImpl implements AuthRepository {
                 
         var response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         
-        System.out.println("Response status code: " + response.statusCode());
-        System.out.println("Response body: " + response.body());
+        logger.debug("Response status code: {}", response.statusCode());
+        logger.debug("Response body: {}", response.body());
         
         if (response.statusCode() >= 400) {
             throw new RuntimeException("Failed to send verification code. Status code: " + 

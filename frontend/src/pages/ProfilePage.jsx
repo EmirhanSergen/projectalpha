@@ -124,7 +124,6 @@ const getUserData = async () => {
     setIsCurrentFalse(false);
     try {
       const response = await checkPassword(userProfile.email, passwordData.currentPassword, currentUserRole);
-      console.log(response.status);
       setIsCurrentFalse(false);
     } catch (err) {
       const message = err?.response?.data?.message || err?.message || '';
@@ -136,7 +135,6 @@ const getUserData = async () => {
 
     try{
       const responseChange = await changePassword(currentUserId, passwordData.confirmPassword);
-      console.log(responseChange.status);
       setIsSucceed(true);
       setIsCurrentFalse(false);
     } catch(err) {
@@ -306,7 +304,6 @@ const getUserData = async () => {
                if (isEditingPassword) {
                  if (passwordData.newPassword === passwordData.confirmPassword) {
                    handlePasswordEdit();
-                   console.log('Şifre güncellendi:', passwordData);
                    setIsEditingPassword(false);
                    setPasswordData({
                      currentPassword: '',

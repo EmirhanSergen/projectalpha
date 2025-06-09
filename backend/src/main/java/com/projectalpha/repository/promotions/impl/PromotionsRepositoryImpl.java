@@ -8,6 +8,8 @@ import com.projectalpha.dto.promotions.PromotionInfoForGeneral;
 import com.projectalpha.dto.promotions.PromotionsSupabase;
 import com.projectalpha.dto.promotions.newPromotionRequest;
 import com.projectalpha.repository.promotions.PromotionsRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Repository;
@@ -28,6 +30,7 @@ public class PromotionsRepositoryImpl implements PromotionsRepository {
     private final SupabaseConfig supabaseConfig;
     private final HttpClient httpClient = HttpClient.newHttpClient();
     private final ObjectMapper mapper = new ObjectMapper();
+    private static final Logger logger = LoggerFactory.getLogger(PromotionsRepositoryImpl.class);
 
     @Autowired
     public PromotionsRepositoryImpl(SupabaseConfig supabaseConfig) {this.supabaseConfig = supabaseConfig;}
@@ -62,7 +65,7 @@ public class PromotionsRepositoryImpl implements PromotionsRepository {
                 throw new RuntimeException("Promosyon kaydedilemedi: " + response.body());
             }
 
-            System.out.println("Promosyon başarıyla oluşturuldu: " + response.body());
+            logger.info("Promosyon başarıyla oluşturuldu: {}", response.body());
             return promotion;
         } catch (Exception e) {
             e.printStackTrace();
@@ -113,7 +116,7 @@ public class PromotionsRepositoryImpl implements PromotionsRepository {
                 throw new RuntimeException("Promosyon güncellenemedi: " + response.body());
             }
 
-            System.out.println("Promosyon başarıyla güncellendi: " + response.body());
+            logger.info("Promosyon başarıyla güncellendi: {}", response.body());
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -182,7 +185,7 @@ public class PromotionsRepositoryImpl implements PromotionsRepository {
             JsonNode promos = mapper.readTree(getResponse.body());
 
             if (!promos.isArray() || promos.size() == 0) {
-                System.out.println("Silinecek promosyon yok.");
+                logger.info("Silinecek promosyon yok.");
                 return;
             }
 
@@ -204,9 +207,9 @@ public class PromotionsRepositoryImpl implements PromotionsRepository {
                 HttpResponse<String> deleteResponse = httpClient.send(deleteRequest, HttpResponse.BodyHandlers.ofString());
 
                 if (deleteResponse.statusCode() == 204 || deleteResponse.statusCode() == 200) {
-                    System.out.println("Promosyon silindi: " + id);
+                    logger.info("Promosyon silindi: {}", id);
                 } else {
-                    System.err.println("Promosyon silinemedi: " + id + " - " + deleteResponse.body());
+                    logger.error("Promosyon silinemedi: {} - {}", id, deleteResponse.body());
                 }
             }
 
