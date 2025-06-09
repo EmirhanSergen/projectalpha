@@ -22,9 +22,7 @@ import org.springframework.boot.actuate.autoconfigure.observation.ObservationPro
 import org.springframework.stereotype.Repository;
 
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import com.projectalpha.util.SupabaseHttpHelper;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -32,29 +30,22 @@ import java.util.stream.Collectors;
 public class DinerRepositoryImpl implements DinerRepository, ListRepository {
 
     private final SupabaseConfig supabaseConfig;
-    private final HttpClient httpClient = HttpClient.newHttpClient();
+    private final SupabaseHttpHelper httpHelper;
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Autowired
-    public DinerRepositoryImpl(SupabaseConfig supabaseConfig) {
+    public DinerRepositoryImpl(SupabaseConfig supabaseConfig, SupabaseHttpHelper httpHelper) {
         this.supabaseConfig = supabaseConfig;
+        this.httpHelper = httpHelper;
     }
 
     @Override
     public Optional<DinerLoginResponse> findDinerByID(String userId, List<CustomList> dinerLists, List<customListLike> dinerLikes) {
         try {
             String url = supabaseConfig.getSupabaseUrl() + "/rest/v1/user_profile_diner?select=" + "&user_id=eq." + userId;
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .header("apikey", supabaseConfig.getSupabaseApiKey())
-                    .header("Authorization", "Bearer " + supabaseConfig.getSupabaseSecretKey())
-                    .header("Content-Type", "application/json")
-                    .GET()
-                    .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() == 200) {
-                JsonNode root = mapper.readTree(response.body());
+            String resp = httpHelper.get(url);
+            JsonNode root = mapper.readTree(resp);
+            if (root.isArray() && root.size() > 0) {
                 if (root.isArray() && root.size() > 0) {
 
                     DinerUserProfile dinerProfileResponse = mapper.treeToValue(root.get(0), DinerUserProfile.class);
@@ -74,19 +65,8 @@ public class DinerRepositoryImpl implements DinerRepository, ListRepository {
     public List<customListLike> findDinerLikes(String userId) {
         try {
             String url = supabaseConfig.getSupabaseUrl() + "/rest/v1/custom_list_like?select=*&user_id=eq." + userId;
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .header("apikey", supabaseConfig.getSupabaseApiKey())
-                    .header("Authorization", "Bearer " + supabaseConfig.getSupabaseSecretKey())
-                    .header("Content-Type", "application/json")
-                    .GET()
-                    .build();
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() >= 400) {
-                throw new RuntimeException("Likeler alınamadı: " + response.body());
-            }
-            JsonNode root = mapper.readTree(response.body());
+            String resp = httpHelper.get(url);
+            JsonNode root = mapper.readTree(resp);
             List<customListLike> listOfLikes = new ArrayList<>();
 
             if (root.isArray()) {
@@ -106,17 +86,9 @@ public class DinerRepositoryImpl implements DinerRepository, ListRepository {
     public String findDinerId(String userId) {
         try {
             String url = supabaseConfig.getSupabaseUrl() + "/rest/v1/user_profile_diner?select=" + "&user_id=eq." + userId;
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .header("apikey", supabaseConfig.getSupabaseApiKey())
-                    .header("Authorization", "Bearer " + supabaseConfig.getSupabaseSecretKey())
-                    .header("Content-Type", "application/json")
-                    .GET()
-                    .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() == 200) {
-                JsonNode root = mapper.readTree(response.body());
+            String resp = httpHelper.get(url);
+            if (resp != null) {
+                JsonNode root = mapper.readTree(resp);
                 if (root.isArray() && root.size() > 0) {
 
                     DinerUserProfile dinerProfileResponse = mapper.treeToValue(root.get(0), DinerUserProfile.class);
@@ -148,22 +120,9 @@ public class DinerRepositoryImpl implements DinerRepository, ListRepository {
 
             String url = supabaseConfig.getSupabaseUrl() + "/rest/v1/custom_list";
 
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-                    .header("apikey", supabaseConfig.getSupabaseApiKey())
-                    .header("Authorization", "Bearer " + supabaseConfig.getSupabaseSecretKey())
-                    .header("Content-Type", "application/json")
-                    .header("Prefer", "return=representation")
-                    .build();
+            String resp = httpHelper.post(url, requestBody, "return=representation");
 
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() >= 400) {
-                throw new RuntimeException("Liste oluşturulamadı: " + response.body());
-            }
-
-            JsonNode root = mapper.readTree(response.body());
+            JsonNode root = mapper.readTree(resp);
             if (!root.isArray() || root.size() == 0) {
                 throw new RuntimeException("Boş Supabase cevabı");
             }
@@ -190,19 +149,7 @@ public class DinerRepositoryImpl implements DinerRepository, ListRepository {
             String column = "id";
             String url = supabaseConfig.getSupabaseUrl() + "/rest/v1/user_profile_diner?select=" + column + "&user_id=eq." + userId;
 
-            HttpRequest profileRequest = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .header("apikey", supabaseConfig.getSupabaseApiKey())
-                    .header("Authorization", "Bearer " + supabaseConfig.getSupabaseSecretKey())
-                    .header("Content-Type", "application/json")
-                    .header("Prefer", "return=minimal")
-                    .method("PATCH", HttpRequest.BodyPublishers.ofString(profileJson))
-                    .build();
-
-            HttpResponse<String> response = httpClient.send(profileRequest, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() >= 400) {
-                throw new RuntimeException("Update failed: " + response.body());
-            }
+            httpHelper.patch(url, profileJson, "return=minimal");
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

@@ -9,40 +9,29 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import com.projectalpha.util.SupabaseHttpHelper;
 import java.util.ArrayList;
 import java.util.List;
 
 @Repository
 public class BusinessTagRepositoryImpl implements BusinessTagRepository {
     private final SupabaseConfig supabaseConfig;
-    private final HttpClient httpClient;
+    private final SupabaseHttpHelper httpHelper;
     private final ObjectMapper objectMapper;
 
     @Autowired
-    public BusinessTagRepositoryImpl(SupabaseConfig supabaseConfig) {
+    public BusinessTagRepositoryImpl(SupabaseConfig supabaseConfig, SupabaseHttpHelper httpHelper) {
         this.supabaseConfig = supabaseConfig;
-        this.httpClient = HttpClient.newHttpClient();
+        this.httpHelper = httpHelper;
         this.objectMapper = new ObjectMapper();
     }
 
     private List<BusinessTagDTO> fetchList(String path) {
         try {
             String url = supabaseConfig.getSupabaseUrl() + "/rest/v1/" + path;
-            HttpRequest req = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .header("apikey", supabaseConfig.getSupabaseApiKey())
-                    .header("Authorization", "Bearer " + supabaseConfig.getSupabaseSecretKey())
-                    .header("Content-Type", "application/json")
-                    .GET()
-                    .build();
+            String body = httpHelper.get(url);
 
-            HttpResponse<String> r = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
-            if (r.statusCode() >= 400) throw new RuntimeException("Request failed [" + path + "]: " + r.body());
-
-            JsonNode root = objectMapper.readTree(r.body());
+            JsonNode root = objectMapper.readTree(body);
             List<BusinessTagDTO> list = new ArrayList<>();
             for (JsonNode n : root) list.add(objectMapper.treeToValue(n, BusinessTagDTO.class));
             return list;

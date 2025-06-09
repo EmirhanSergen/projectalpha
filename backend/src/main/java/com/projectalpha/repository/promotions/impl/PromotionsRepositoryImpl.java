@@ -15,9 +15,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Repository;
 
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import com.projectalpha.util.SupabaseHttpHelper;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -28,12 +26,15 @@ import java.util.Map;
 public class PromotionsRepositoryImpl implements PromotionsRepository {
 
     private final SupabaseConfig supabaseConfig;
-    private final HttpClient httpClient = HttpClient.newHttpClient();
+    private final SupabaseHttpHelper httpHelper;
     private final ObjectMapper mapper = new ObjectMapper();
     private static final Logger logger = LoggerFactory.getLogger(PromotionsRepositoryImpl.class);
 
     @Autowired
-    public PromotionsRepositoryImpl(SupabaseConfig supabaseConfig) {this.supabaseConfig = supabaseConfig;}
+    public PromotionsRepositoryImpl(SupabaseConfig supabaseConfig, SupabaseHttpHelper httpHelper) {
+        this.supabaseConfig = supabaseConfig;
+        this.httpHelper = httpHelper;
+    }
 
     public PromotionsSupabase newPromotion(String businessId, newPromotionRequest request){
         try {
@@ -48,24 +49,17 @@ public class PromotionsRepositoryImpl implements PromotionsRepository {
             );
             String promotionJson = mapper.writeValueAsString(promotionPayload);
             String url = supabaseConfig.getSupabaseUrl() + "/rest/v1/promotion";
-            HttpRequest promotionRequest = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .POST(HttpRequest.BodyPublishers.ofString(promotionJson))
-                    .header("apikey", supabaseConfig.getSupabaseApiKey())
-                    .header("Authorization", "Bearer " + supabaseConfig.getSupabaseSecretKey())
-                    .header("Content-Type", "application/json")
-                    .header("Prefer", "return=representation")
-                    .build();
-
-            HttpResponse<String> response = httpClient.send(promotionRequest, HttpResponse.BodyHandlers.ofString());
-            PromotionsSupabase[] promotions = mapper.readValue(response.body(), PromotionsSupabase[].class);
+            String resp = httpHelper.post(url, promotionJson, "return=representation");
+            PromotionsSupabase[] promotions = mapper.readValue(resp, PromotionsSupabase[].class);
             PromotionsSupabase promotion = promotions[0] != null ? promotions[0] : promotions[1] != null ? promotions[1] : null;
+
 
             if (response.statusCode() != 201 && response.statusCode() != 200) {
                 throw new RuntimeException("Promosyon kaydedilemedi: " + response.body());
             }
 
             logger.info("Promosyon başarıyla oluşturuldu: {}", response.body());
+
             return promotion;
         } catch (Exception e) {
             e.printStackTrace();
@@ -76,14 +70,7 @@ public class PromotionsRepositoryImpl implements PromotionsRepository {
     public void deletePromotion(String businessId, String promotionId){
         try {
             String url = supabaseConfig.getSupabaseUrl() + "/rest/v1/promotion?id=eq." + promotionId + "&business_id=eq." + businessId;
-            HttpRequest promotionRequest = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .DELETE()
-                    .header("apikey", supabaseConfig.getSupabaseApiKey())
-                    .header("Authorization", "Bearer " + supabaseConfig.getSupabaseSecretKey())
-                    .header("Content-Type", "application/json")
-                    .build();
-            httpClient.send(promotionRequest, HttpResponse.BodyHandlers.ofString());
+            httpHelper.delete(url, "return=minimal");
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("Promosyon silinirken hata oluştu: " + e.getMessage());
@@ -101,22 +88,11 @@ public class PromotionsRepositoryImpl implements PromotionsRepository {
             );
             String promotionJson = mapper.writeValueAsString(promotionPayload);
             String url = supabaseConfig.getSupabaseUrl() + "/rest/v1/promotion?id=eq." + promotionId + "&business_id=eq." + businessId;
-            HttpRequest promotionRequest = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .header("apikey", supabaseConfig.getSupabaseApiKey())
-                    .header("Authorization", "Bearer " + supabaseConfig.getSupabaseSecretKey())
-                    .header("Content-Type", "application/json")
-                    .header("Prefer", "return=representation")
-                    .method("PATCH", HttpRequest.BodyPublishers.ofString(promotionJson))
-                    .build();
+            String resp = httpHelper.patch(url, promotionJson, "return=representation");
 
-            HttpResponse<String> response = httpClient.send(promotionRequest, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() != 201 && response.statusCode() != 200) {
-                throw new RuntimeException("Promosyon güncellenemedi: " + response.body());
-            }
 
             logger.info("Promosyon başarıyla güncellendi: {}", response.body());
+
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -132,18 +108,8 @@ public class PromotionsRepositoryImpl implements PromotionsRepository {
         try {
             String url = supabaseConfig.getSupabaseUrl()
                     + "/rest/v1/promotion?business_id=eq." + businessId;
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .header("apikey", supabaseConfig.getSupabaseApiKey())
-                    .header("Authorization", "Bearer " + supabaseConfig.getSupabaseSecretKey())
-                    .header("Content-Type", "application/json")
-                    .GET()
-                    .build();
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() >= 400) {
-                throw new RuntimeException("Promosyonlar alınamadı: " + response.body());
-            }
-            JsonNode root = mapper.readTree(response.body());
+            String body = httpHelper.get(url);
+            JsonNode root = mapper.readTree(body);
             List<PromotionsSupabase> listOfPromotions = new ArrayList<>();
 
             if (root.isArray()) {
@@ -167,22 +133,8 @@ public class PromotionsRepositoryImpl implements PromotionsRepository {
             String url = supabaseConfig.getSupabaseUrl()
                     + "/rest/v1/promotion?endat=lt." + today;
 
-            // Süresi dolan promosyonları GET ile çek
-            HttpRequest getRequest = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .header("apikey", supabaseConfig.getSupabaseApiKey())
-                    .header("Authorization", "Bearer " + supabaseConfig.getSupabaseSecretKey())
-                    .header("Content-Type", "application/json")
-                    .GET()
-                    .build();
-
-            HttpResponse<String> getResponse = httpClient.send(getRequest, HttpResponse.BodyHandlers.ofString());
-
-            if (getResponse.statusCode() >= 400) {
-                throw new RuntimeException("Promosyonlar alınamadı: " + getResponse.body());
-            }
-
-            JsonNode promos = mapper.readTree(getResponse.body());
+            String getResp = httpHelper.get(url);
+            JsonNode promos = mapper.readTree(getResp);
 
             if (!promos.isArray() || promos.size() == 0) {
                 logger.info("Silinecek promosyon yok.");
@@ -211,6 +163,7 @@ public class PromotionsRepositoryImpl implements PromotionsRepository {
                 } else {
                     logger.error("Promosyon silinemedi: {} - {}", id, deleteResponse.body());
                 }
+
             }
 
         } catch (Exception e) {

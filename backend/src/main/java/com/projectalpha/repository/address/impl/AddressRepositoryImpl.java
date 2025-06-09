@@ -9,9 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import com.projectalpha.util.SupabaseHttpHelper;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,31 +17,22 @@ import java.util.List;
 public class AddressRepositoryImpl implements AddressRepository {
 
     private final SupabaseConfig supabaseConfig;
-    private final HttpClient httpClient;
+    private final SupabaseHttpHelper httpHelper;
     private final ObjectMapper objectMapper;
 
     @Autowired
-    public AddressRepositoryImpl(SupabaseConfig supabaseConfig) {
+    public AddressRepositoryImpl(SupabaseConfig supabaseConfig, SupabaseHttpHelper httpHelper) {
         this.supabaseConfig = supabaseConfig;
-        this.httpClient = HttpClient.newHttpClient();
+        this.httpHelper = httpHelper;
         this.objectMapper = new ObjectMapper();
     }
 
     private List<AddressDTO> fetchList(String path) {
         try {
             String url = supabaseConfig.getSupabaseUrl() + "/rest/v1/" + path;
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .header("apikey", supabaseConfig.getSupabaseApiKey())
-                    .header("Authorization", "Bearer " + supabaseConfig.getSupabaseSecretKey())
-                    .header("Content-Type", "application/json")
-                    .GET()
-                    .build();
+            String body = httpHelper.get(url);
 
-            HttpResponse<String> resp = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            if (resp.statusCode() >= 400) throw new RuntimeException("Request failed [" + path + "]: " + resp.body());
-
-            JsonNode root = objectMapper.readTree(resp.body());
+            JsonNode root = objectMapper.readTree(body);
             List<AddressDTO> list = new ArrayList<>();
             for (JsonNode node : root) {
                 list.add(objectMapper.treeToValue(node, AddressDTO.class));

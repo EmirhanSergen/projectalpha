@@ -9,9 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import com.projectalpha.util.SupabaseHttpHelper;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -24,33 +22,22 @@ import java.util.UUID;
 public class BusinessRepositoryImpl implements BusinessRepository {
 
     private final SupabaseConfig supabaseConfig;
-    private final HttpClient httpClient;
+    private final SupabaseHttpHelper httpHelper;
     private final ObjectMapper objectMapper;
 
     @Autowired
-    public BusinessRepositoryImpl(SupabaseConfig supabaseConfig) {
+    public BusinessRepositoryImpl(SupabaseConfig supabaseConfig, SupabaseHttpHelper httpHelper) {
         this.supabaseConfig = supabaseConfig;
-        this.httpClient = HttpClient.newHttpClient();
+        this.httpHelper = httpHelper;
         this.objectMapper = new ObjectMapper();
     }
 
     private List<BusinessDTO> fetchList(String path) {
         try {
             String url = supabaseConfig.getSupabaseUrl() + "/rest/v1/" + path;
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .header("apikey", supabaseConfig.getSupabaseApiKey())
-                    .header("Authorization", "Bearer " + supabaseConfig.getSupabaseSecretKey())
-                    .header("Content-Type", "application/json")
-                    .GET()
-                    .build();
+            String body = httpHelper.get(url);
 
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() >= 400) {
-                throw new RuntimeException("Request failed [" + path + "]: " + response.body());
-            }
-
-            JsonNode root = objectMapper.readTree(response.body());
+            JsonNode root = objectMapper.readTree(body);
             List<BusinessDTO> result = new ArrayList<>();
             for (JsonNode node : root) {
                 result.add(objectMapper.treeToValue(node, BusinessDTO.class));

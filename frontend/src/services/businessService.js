@@ -1,7 +1,8 @@
 
 import axios from 'axios';
+import { API_BASE_URL } from './api';
 
-const API_BASE = 'http://localhost:8080/api/business';
+const API_BASE = `${API_BASE_URL}/api/business`;
 
 /**
  * Fetches all businesses.
