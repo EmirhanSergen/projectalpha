@@ -15,6 +15,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Repository;
 
 import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import com.projectalpha.util.SupabaseHttpHelper;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -27,6 +30,7 @@ public class PromotionsRepositoryImpl implements PromotionsRepository {
 
     private final SupabaseConfig supabaseConfig;
     private final SupabaseHttpHelper httpHelper;
+    private final HttpClient httpClient = HttpClient.newHttpClient();
     private final ObjectMapper mapper = new ObjectMapper();
     private static final Logger logger = LoggerFactory.getLogger(PromotionsRepositoryImpl.class);
 
@@ -53,12 +57,7 @@ public class PromotionsRepositoryImpl implements PromotionsRepository {
             PromotionsSupabase[] promotions = mapper.readValue(resp, PromotionsSupabase[].class);
             PromotionsSupabase promotion = promotions[0] != null ? promotions[0] : promotions[1] != null ? promotions[1] : null;
 
-
-            if (response.statusCode() != 201 && response.statusCode() != 200) {
-                throw new RuntimeException("Promosyon kaydedilemedi: " + response.body());
-            }
-
-            logger.info("Promosyon başarıyla oluşturuldu: {}", response.body());
+            logger.info("Promosyon başarıyla oluşturuldu: {}", resp);
 
             return promotion;
         } catch (Exception e) {
@@ -90,8 +89,7 @@ public class PromotionsRepositoryImpl implements PromotionsRepository {
             String url = supabaseConfig.getSupabaseUrl() + "/rest/v1/promotion?id=eq." + promotionId + "&business_id=eq." + businessId;
             String resp = httpHelper.patch(url, promotionJson, "return=representation");
 
-
-            logger.info("Promosyon başarıyla güncellendi: {}", response.body());
+            logger.info("Promosyon başarıyla güncellendi: {}", resp);
 
 
         } catch (Exception e) {

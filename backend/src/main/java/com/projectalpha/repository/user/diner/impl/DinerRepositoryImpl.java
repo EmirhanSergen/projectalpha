@@ -22,6 +22,9 @@ import org.springframework.boot.actuate.autoconfigure.observation.ObservationPro
 import org.springframework.stereotype.Repository;
 
 import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import com.projectalpha.util.SupabaseHttpHelper;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -31,6 +34,7 @@ public class DinerRepositoryImpl implements DinerRepository, ListRepository {
 
     private final SupabaseConfig supabaseConfig;
     private final SupabaseHttpHelper httpHelper;
+    private final HttpClient httpClient = HttpClient.newHttpClient();
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Autowired
