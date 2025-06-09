@@ -42,7 +42,7 @@ public class SupabaseHttpHelper {
         HttpRequest.Builder builder = baseBuilder(url)
                 .POST(HttpRequest.BodyPublishers.ofString(body));
         if (prefer != null) {
-            builder.header("Prefer", prefer);
+           builder.header("Prefer", prefer);
         }
         HttpResponse<String> resp = httpClient.send(builder.build(), HttpResponse.BodyHandlers.ofString());
         if (resp.statusCode() >= 400 && resp.statusCode() != 201) {
@@ -69,8 +69,8 @@ public class SupabaseHttpHelper {
         if (prefer != null) {
             builder.header("Prefer", prefer);
         }
-        HttpResponse<String> resp = httpClient.send(builder.build(), HttpResponse.BodyHandlers.ofString());
-        if (resp.statusCode() >= 400 && resp.statusCode() != 204) {
+       HttpResponse<String> resp = httpClient.send(builder.build(), HttpResponse.BodyHandlers.ofString());
+       if (resp.statusCode() >= 400 && resp.statusCode() != 204) {
             throw new RuntimeException("Request failed: " + resp.body());
         }
         return resp.body();
