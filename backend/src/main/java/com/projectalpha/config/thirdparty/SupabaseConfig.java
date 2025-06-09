@@ -6,14 +6,13 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class SupabaseConfig {
 
-    // application.properties 'den çekiyor
-    @Value("${supabase.url}")
+    @Value("${SUPABASE_URL}")
     private String supabaseUrl;
 
-    @Value("${supabase.apiKey}")
+    @Value("${SUPABASE_API_KEY}")
     private String supabaseApiKey;
 
-    @Value("${supabase.secretKey}")
+    @Value("${SUPABASE_SECRET_KEY}")
     private String supabaseSecretKey;
 
     public String getSupabaseUrl() {
