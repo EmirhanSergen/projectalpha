@@ -1,9 +1,10 @@
 // src/services/listService.js
 
 import axios from 'axios';
-import {getUserFavoritesIdFromStorage, getUserIdFromStorage} from "./userService.js";
+import { getUserFavoritesIdFromStorage, getUserIdFromStorage } from './userService.js';
+import { API_BASE_URL } from './api';
 
-const API_URL = 'http://localhost:8080/api/users';
+const API_URL = `${API_BASE_URL}/api/users`;
 
 export const addToList = async (userId, listId, itemId) => {
     const response = await axios.post(`${API_URL}/diner_user/${userId}/lists/${listId}/items/${itemId}`, {});
