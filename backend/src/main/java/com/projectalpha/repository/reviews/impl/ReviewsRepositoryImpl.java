@@ -10,9 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import com.projectalpha.util.SupabaseHttpHelper;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,11 +20,14 @@ import java.util.Map;
 public class ReviewsRepositoryImpl implements ReviewsRepository {
 
     private final SupabaseConfig supabaseConfig;
-    private final HttpClient httpClient = HttpClient.newHttpClient();
+    private final SupabaseHttpHelper httpHelper;
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Autowired
-    public ReviewsRepositoryImpl(SupabaseConfig supabaseConfig) {this.supabaseConfig = supabaseConfig;}
+    public ReviewsRepositoryImpl(SupabaseConfig supabaseConfig, SupabaseHttpHelper httpHelper) {
+        this.supabaseConfig = supabaseConfig;
+        this.httpHelper = httpHelper;
+    }
 
     @Override
     public List<ReviewSupabase> getReviewsByUserId(String userId) {
@@ -47,20 +48,9 @@ public class ReviewsRepositoryImpl implements ReviewsRepository {
                     + "&user_id=eq." + userId
                     + "&order=created_at.desc";
 
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .header("apikey", supabaseConfig.getSupabaseApiKey())
-                    .header("Authorization", "Bearer " + supabaseConfig.getSupabaseSecretKey())
-                    .header("Content-Type", "application/json")
-                    .GET()
-                    .build();
+            String body = httpHelper.get(url);
 
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() >= 400) {
-                throw new RuntimeException("Değerlendirmeler alınamadı: " + response.body());
-            }
-
-            JsonNode root = mapper.readTree(response.body());
+            JsonNode root = mapper.readTree(body);
             List<ReviewSupabase> reviews = new ArrayList<>();
             if (root.isArray()) {
                 for (JsonNode node : root) {
@@ -85,22 +75,9 @@ public class ReviewsRepositoryImpl implements ReviewsRepository {
 
             String reviewsJson = mapper.writeValueAsString(reviewPayload);
             String url = supabaseConfig.getSupabaseUrl() + "/rest/v1/review";
-            HttpRequest reviewRequest = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .POST(HttpRequest.BodyPublishers.ofString(reviewsJson))
-                    .header("apikey", supabaseConfig.getSupabaseApiKey())
-                    .header("Authorization", "Bearer " + supabaseConfig.getSupabaseSecretKey())
-                    .header("Content-Type", "application/json")
-                    .header("Prefer", "return=representation")
-                    .build();
+            String resp = httpHelper.post(url, reviewsJson, "return=representation");
 
-            HttpResponse<String> response = httpClient.send(reviewRequest, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() != 201 && response.statusCode() != 200) {
-                throw new RuntimeException("Review kaydedilemedi: " + response.body());
-            }
-
-            System.out.println("Review başarıyla oluşturuldu: " + response.body());
+            System.out.println("Review başarıyla oluşturuldu: " + resp);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -111,14 +88,7 @@ public class ReviewsRepositoryImpl implements ReviewsRepository {
     public void deleteReview(String reviewId){
         try {
             String url = supabaseConfig.getSupabaseUrl() + "/rest/v1/review/" + reviewId;
-            HttpRequest reviewRequest = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .DELETE()
-                    .header("apikey", supabaseConfig.getSupabaseApiKey())
-                    .header("Authorization", "Bearer " + supabaseConfig.getSupabaseSecretKey())
-                    .header("Content-Type", "application/json")
-                    .build();
-            HttpResponse<String> response = httpClient.send(reviewRequest, HttpResponse.BodyHandlers.ofString());
+            httpHelper.delete(url, "return=minimal");
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("Değerlendirme silinirken hata oluştu: " + e.getMessage());
@@ -128,18 +98,8 @@ public class ReviewsRepositoryImpl implements ReviewsRepository {
     public List<ReviewSupabase> getReviewsByBusinessId(String businessId) {
         try {
             String url = supabaseConfig.getSupabaseUrl() + "/rest/v1/review?business_id=eq." + businessId;
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .header("apikey", supabaseConfig.getSupabaseApiKey())
-                    .header("Authorization", "Bearer " + supabaseConfig.getSupabaseSecretKey())
-                    .header("Content-Type", "application/json")
-                    .GET()
-                    .build();
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() >= 400) {
-                throw new RuntimeException("Değerlendirmeler alınamadı: " + response.body());
-            }
-            JsonNode root = mapper.readTree(response.body());
+            String body = httpHelper.get(url);
+            JsonNode root = mapper.readTree(body);
             List<ReviewSupabase> listOfReviews = new ArrayList<>();
 
             if (root.isArray()) {
@@ -160,22 +120,9 @@ public class ReviewsRepositoryImpl implements ReviewsRepository {
     public void updateRating(String businessId, double rating){
         try {
             String url = supabaseConfig.getSupabaseUrl() + "/rest/v1/business?id=eq." + businessId;
-            HttpRequest reviewRequest = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .method("PATCH", HttpRequest.BodyPublishers.ofString("{\"avg_rating\": " + rating + "}"))
-                    .header("apikey", supabaseConfig.getSupabaseApiKey())
-                    .header("Authorization", "Bearer " + supabaseConfig.getSupabaseSecretKey())
-                    .header("Content-Type", "application/json")
-                    .header("Prefer", "return=representation")
-                    .build();
+            String resp = httpHelper.patch(url, "{\"avg_rating\": " + rating + "}", "return=representation");
 
-            HttpResponse<String> response = httpClient.send(reviewRequest, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() != 201 && response.statusCode() != 200) {
-                throw new RuntimeException("Review kaydedilemedi: " + response.body());
-            }
-
-            System.out.println("Review başarıyla oluşturuldu: " + response.body());
+            System.out.println("Review başarıyla oluşturuldu: " + resp);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -186,22 +133,9 @@ public class ReviewsRepositoryImpl implements ReviewsRepository {
     public void setViewed(String reviewId){
         try {
             String url = supabaseConfig.getSupabaseUrl() + "/rest/v1/review?id=eq." + reviewId;
-            HttpRequest reviewRequest = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .method("PATCH", HttpRequest.BodyPublishers.ofString("{\"isViewed\": " + true + "}"))
-                    .header("apikey", supabaseConfig.getSupabaseApiKey())
-                    .header("Authorization", "Bearer " + supabaseConfig.getSupabaseSecretKey())
-                    .header("Content-Type", "application/json")
-                    .header("Prefer", "return=representation")
-                    .build();
+            String resp = httpHelper.patch(url, "{\"isViewed\": true}", "return=representation");
 
-            HttpResponse<String> response = httpClient.send(reviewRequest, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() != 201 && response.statusCode() != 200) {
-                throw new RuntimeException("Review görüntülenemedi: " + response.body());
-            }
-
-            System.out.println("Review görüntülendi: " + response.body());
+            System.out.println("Review görüntülendi: " + resp);
 
         } catch (Exception e) {
             e.printStackTrace();

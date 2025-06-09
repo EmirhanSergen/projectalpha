@@ -20,9 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import com.projectalpha.util.SupabaseHttpHelper;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -31,30 +29,23 @@ import java.util.Optional;
 public class OwnerRepositoryImpl implements OwnerRepository {
 
     private final SupabaseConfig supabaseConfig;
-    private final HttpClient httpClient = HttpClient.newHttpClient();
+    private final SupabaseHttpHelper httpHelper;
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Autowired
-    public OwnerRepositoryImpl(SupabaseConfig supabaseConfig) {
+    public OwnerRepositoryImpl(SupabaseConfig supabaseConfig, SupabaseHttpHelper httpHelper) {
         this.supabaseConfig = supabaseConfig;
+        this.httpHelper = httpHelper;
     }
 
     @Override
     public Optional<OwnerLoginResponse> findOwnerByID(String userId, List<ReviewSupabase> businessReviews) {
         try {
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(supabaseConfig.getSupabaseUrl() + "/rest/v1/user_profile_owner?owner_id=eq." + userId))
-                    .header("apikey", supabaseConfig.getSupabaseApiKey())
-                    .header("Authorization", "Bearer " + supabaseConfig.getSupabaseSecretKey())
-                    .header("Content-Type", "application/json")
-                    .GET()
-                    .build();
+            String url = supabaseConfig.getSupabaseUrl() + "/rest/v1/user_profile_owner?owner_id=eq." + userId;
+            String resp = httpHelper.get(url);
 
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() == 200) {
-                JsonNode root = mapper.readTree(response.body());
-                if (root.isArray() && root.size() > 0) {
+            JsonNode root = mapper.readTree(resp);
+            if (root.isArray() && root.size() > 0) {
                     OwnerUserProfile profile = mapper.treeToValue(root.get(0), OwnerUserProfile.class);
                     Business businessProfile = getBusinessProfile(userId);
 
@@ -74,16 +65,8 @@ public class OwnerRepositoryImpl implements OwnerRepository {
             String businessUrl = supabaseConfig.getSupabaseUrl() +
                       "/rest/v1/business?select=*" + "&owner_id1=eq." + ownerId;
 
-            HttpRequest businessRequest = HttpRequest.newBuilder()
-                    .uri(URI.create(businessUrl))
-                    .header("apikey", supabaseConfig.getSupabaseApiKey())
-                    .header("Authorization", "Bearer " + supabaseConfig.getSupabaseSecretKey())
-                    .header("Content-Type", "application/json")
-                    .GET()
-                    .build();
-
-            HttpResponse<String> businessResponse = httpClient.send(businessRequest, HttpResponse.BodyHandlers.ofString());
-            Business[] businesses = mapper.readValue(businessResponse.body(), Business[].class);
+            String businessResp = httpHelper.get(businessUrl);
+            Business[] businesses = mapper.readValue(businessResp, Business[].class);
             return businesses[0];
 
 
@@ -109,19 +92,7 @@ public class OwnerRepositoryImpl implements OwnerRepository {
             String column = "id";
             String url = supabaseConfig.getSupabaseUrl() + "/rest/v1/user_profile_owner?select=" + column + "&owner_id=eq." + userId;
 
-            HttpRequest profileRequest = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .header("apikey", supabaseConfig.getSupabaseApiKey())
-                    .header("Authorization", "Bearer " + supabaseConfig.getSupabaseSecretKey())
-                    .header("Content-Type", "application/json")
-                    .header("Prefer", "return=minimal")
-                    .method("PATCH", HttpRequest.BodyPublishers.ofString(profileJson))
-                    .build();
-
-            HttpResponse<String> response = httpClient.send(profileRequest, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() >= 400) {
-                throw new RuntimeException("Update failed: " + response.body());
-            }
+            httpHelper.patch(url, profileJson, "return=minimal");
         } catch (Exception e) {
         throw new RuntimeException(e);
       }
@@ -132,25 +103,14 @@ public class OwnerRepositoryImpl implements OwnerRepository {
             // JSON formatına çevir
             String body = mapper.writeValueAsString(business);
 
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(supabaseConfig.getSupabaseUrl() + "/rest/v1/business"))
-                    .header("apikey", supabaseConfig.getSupabaseApiKey())
-                    .header("Authorization", "Bearer " + supabaseConfig.getSupabaseSecretKey())
-                    .header("Content-Type", "application/json")
-                    .header("Prefer", "return=representation") // Supabase'in geri dönüş olarak objeyi dönmesini sağlıyor
-                    .POST(HttpRequest.BodyPublishers.ofString(body))
-                    .build();
+            String url = supabaseConfig.getSupabaseUrl() + "/rest/v1/business";
+            String resp = httpHelper.post(url, body, "return=representation");
 
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() == 201) {
-                JsonNode root = mapper.readTree(response.body());
-                if (root.isArray() && root.size() > 0) {
+            JsonNode root = mapper.readTree(resp);
+            if (root.isArray() && root.size() > 0) {
                     return mapper.treeToValue(root.get(0), BusinessDTO.class);
                 }
-            } else {
-                throw new RuntimeException("Failed to save business: " + response.body());
-            }
+            
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException("Error saving business", e);
@@ -162,24 +122,13 @@ public class OwnerRepositoryImpl implements OwnerRepository {
         try {
             String body = mapper.writeValueAsString(address);
 
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(supabaseConfig.getSupabaseUrl() + "/rest/v1/addresses"))
-                    .header("apikey", supabaseConfig.getSupabaseApiKey())
-                    .header("Authorization", "Bearer " + supabaseConfig.getSupabaseSecretKey())
-                    .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(body))
-                    .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() == 201) {
-                JsonNode root = mapper.readTree(response.body());
+            String url = supabaseConfig.getSupabaseUrl() + "/rest/v1/addresses";
+            String resp = httpHelper.post(url, body, "return=representation");
+            JsonNode root = mapper.readTree(resp);
                 if (root.isArray() && root.size() > 0) {
                     return mapper.treeToValue(root.get(0), AddressDTO.class);
                 }
-            } else {
-                throw new RuntimeException("Failed to save address: " + response.body());
-            }
+            
         } catch (Exception e) {
             throw new RuntimeException("Error saving address", e);
         }
@@ -196,17 +145,10 @@ public class OwnerRepositoryImpl implements OwnerRepository {
         );
         String businessJson = mapper.writeValueAsString(new Map[]{businessPayload});
 
-        HttpRequest businessRequest = HttpRequest.newBuilder()
-                .uri(URI.create(supabaseConfig.getSupabaseUrl() + "/rest/v1/business"))
-                .header("apikey", supabaseConfig.getSupabaseApiKey())
-                .header("Authorization", "Bearer " + supabaseConfig.getSupabaseSecretKey())
-                .header("Content-Type", "application/json")
-                .header("Prefer", "return=representation")
-                .POST(HttpRequest.BodyPublishers.ofString(businessJson))
-                .build();
-        HttpResponse<String> businessResponse = httpClient.send(businessRequest, HttpResponse.BodyHandlers.ofString());
+        String businessUrl = supabaseConfig.getSupabaseUrl() + "/rest/v1/business";
+        String businessResp = httpHelper.post(businessUrl, businessJson, "return=representation");
 
-        BusinessDTO[] businesses = mapper.readValue(businessResponse.body(), BusinessDTO[].class);
+        BusinessDTO[] businesses = mapper.readValue(businessResp, BusinessDTO[].class);
         BusinessDTO createdBusiness = businesses[0];
         String businessId = createdBusiness.getId();
         // 2. Address oluştur (POST)
@@ -219,18 +161,10 @@ public class OwnerRepositoryImpl implements OwnerRepository {
         );
         String addressJson = mapper.writeValueAsString(new Map[]{addressPayload});
 
-        HttpRequest addressRequest = HttpRequest.newBuilder()
-                .uri(URI.create(supabaseConfig.getSupabaseUrl() + "/rest/v1/addresses"))
-                .header("apikey", supabaseConfig.getSupabaseApiKey())
-                .header("Authorization", "Bearer " + supabaseConfig.getSupabaseSecretKey())
-                .header("Content-Type", "application/json")
-                .header("Prefer", "return=representation")
-                .POST(HttpRequest.BodyPublishers.ofString(addressJson))
-                .build();
+        String addressUrl = supabaseConfig.getSupabaseUrl() + "/rest/v1/addresses";
+        String addressResp = httpHelper.post(addressUrl, addressJson, "return=representation");
 
-        HttpResponse<String> addressResponse = httpClient.send(addressRequest, HttpResponse.BodyHandlers.ofString());
-
-        AddressDTO[] addresses = mapper.readValue(addressResponse.body(), AddressDTO[].class);
+        AddressDTO[] addresses = mapper.readValue(addressResp, AddressDTO[].class);
         AddressDTO createdAddress = addresses[0];
         String addressId = createdAddress.getId();
         // 3. Business'a addressId ekle (PATCH)
@@ -240,16 +174,8 @@ public class OwnerRepositoryImpl implements OwnerRepository {
 
         String updateBusinessJson = mapper.writeValueAsString(updateBusinessPayload);
 
-        HttpRequest updateBusinessRequest = HttpRequest.newBuilder()
-                .uri(URI.create(supabaseConfig.getSupabaseUrl() + "/rest/v1/business?id=eq." + businessId))
-                .header("apikey", supabaseConfig.getSupabaseApiKey())
-                .header("Authorization", "Bearer " + supabaseConfig.getSupabaseSecretKey())
-                .header("Content-Type", "application/json")
-                .header("Prefer", "return=minimal")
-                .method("PATCH", HttpRequest.BodyPublishers.ofString(updateBusinessJson))
-                .build();
-
-        httpClient.send(updateBusinessRequest, HttpResponse.BodyHandlers.discarding());
+        String updateUrl = supabaseConfig.getSupabaseUrl() + "/rest/v1/business?id=eq." + businessId;
+        httpHelper.patch(updateUrl, updateBusinessJson, "return=minimal");
 
 
 
@@ -266,16 +192,7 @@ public class OwnerRepositoryImpl implements OwnerRepository {
         String column = "id";
         String url = supabaseConfig.getSupabaseUrl() + "/rest/v1/user_profile_owner?select=" + column + "&owner_id=eq." + ownerId;
 
-        HttpRequest profileRequest = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("apikey", supabaseConfig.getSupabaseApiKey())
-                .header("Authorization", "Bearer " + supabaseConfig.getSupabaseSecretKey())
-                .header("Content-Type", "application/json")
-                .header("Prefer", "return=minimal")
-                .method("PATCH", HttpRequest.BodyPublishers.ofString(profileJson))
-                .build();
-
-        httpClient.send(profileRequest, HttpResponse.BodyHandlers.discarding());
+        httpHelper.patch(url, profileJson, "return=minimal");
 
          //Son olarak güncellenmiş business objesini döndür
         createdBusiness.setAddress(addressId);
