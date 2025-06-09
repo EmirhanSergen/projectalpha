@@ -34,3 +34,8 @@ build/
 
 ### Node Modules ###
 node_modules/
+
+# Ignore environment files
+backend/.env
+frontend/.env
+*.env
