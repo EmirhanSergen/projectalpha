@@ -1,9 +1,10 @@
 // src/services/listService.js
 
 import axios from 'axios';
+import { API_BASE_URL } from './api';
 import {getUserFavoritesIdFromStorage, getUserIdFromStorage} from "./userService.js";
 
-const API_URL = 'http://localhost:8080/api/users';
+const API_URL = `${API_BASE_URL}/users`;
 
 export const addToList = async (userId, listId, itemId) => {
     const response = await axios.post(`${API_URL}/diner_user/${userId}/lists/${listId}/items/${itemId}`, {});
@@ -88,3 +89,4 @@ export const toggleFavorite = async (id) => {
         return await getUserListItems(getUserIdFromStorage(), getUserFavoritesIdFromStorage());
     }
 }
+

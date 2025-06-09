@@ -3,8 +3,9 @@
  * Handles all API calls related to auth
  */
 import axios from 'axios';
+import { API_BASE_URL } from './api';
 
-const API_URL = 'http://localhost:8080/api/auth';
+const API_URL = `${API_BASE_URL}/auth`;
 
 /**
  * Send verification code to email for registration
@@ -68,7 +69,7 @@ export const updateUser = async (email, password, role = 'user') => {
 export const login = async (email, password, role) => {
   try {
     const response = await axios.post(
-        "http://localhost:8080/api/auth/login",
+        `${API_URL}/login`,
         {
           email: email.trim(),
           password: password.trim(),
@@ -83,7 +84,7 @@ export const login = async (email, password, role) => {
 export const checkPassword = async (email, password, role) => {
   try {
     const response = await axios.post(
-        "http://localhost:8080/api/auth/login",
+        `${API_URL}/login`,
         {
           email: email.trim(),
           password: password.trim(),
