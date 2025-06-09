@@ -44,7 +44,7 @@ const Navbar = () => {
     try{
       setUser(profileData);
     } catch (e) {
-      console.log("Test");
+      // ignore
     }
   }
 

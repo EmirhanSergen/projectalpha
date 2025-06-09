@@ -9,6 +9,8 @@ import com.projectalpha.dto.review.ReviewSupabase;
 import com.projectalpha.service.business.BusinessService;
 import com.projectalpha.service.promotions.PromotionsService;
 import com.projectalpha.service.review.ReviewService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +27,7 @@ public class BusinessController {
     private final BusinessService svc;
     private final ReviewService reviewSvc;
     private final PromotionsService promotionsSvc;
+    private static final Logger logger = LoggerFactory.getLogger(BusinessController.class);
 
     public BusinessController(BusinessService svc, ReviewService reviewSvc, PromotionsService promotionsSvc) {
         this.svc = svc;
@@ -165,7 +168,7 @@ public class BusinessController {
                                                                     @PathVariable String promotionId) {
         try {
             promotionsSvc.deletePromotion(businessId, promotionId);
-            System.out.println("Deleted promotion: " + promotionId);
+            logger.info("Deleted promotion: {}", promotionId);
             return ResponseEntity.ok(new GenericResponse<>(true, "Promotion deleted successfully"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()

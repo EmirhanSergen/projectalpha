@@ -6,6 +6,8 @@ import com.projectalpha.config.thirdparty.SupabaseConfig;
 import com.projectalpha.dto.review.ReviewSupabase;
 import com.projectalpha.dto.review.newReviewRequest;
 import com.projectalpha.repository.reviews.ReviewsRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
@@ -22,6 +24,7 @@ public class ReviewsRepositoryImpl implements ReviewsRepository {
     private final SupabaseConfig supabaseConfig;
     private final SupabaseHttpHelper httpHelper;
     private final ObjectMapper mapper = new ObjectMapper();
+    private static final Logger logger = LoggerFactory.getLogger(ReviewsRepositoryImpl.class);
 
     @Autowired
     public ReviewsRepositoryImpl(SupabaseConfig supabaseConfig, SupabaseHttpHelper httpHelper) {
@@ -77,7 +80,9 @@ public class ReviewsRepositoryImpl implements ReviewsRepository {
             String url = supabaseConfig.getSupabaseUrl() + "/rest/v1/review";
             String resp = httpHelper.post(url, reviewsJson, "return=representation");
 
-            System.out.println("Review başarıyla oluşturuldu: " + resp);
+
+            logger.info("Review başarıyla oluşturuldu: {}", response.body());
+
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -122,7 +127,9 @@ public class ReviewsRepositoryImpl implements ReviewsRepository {
             String url = supabaseConfig.getSupabaseUrl() + "/rest/v1/business?id=eq." + businessId;
             String resp = httpHelper.patch(url, "{\"avg_rating\": " + rating + "}", "return=representation");
 
-            System.out.println("Review başarıyla oluşturuldu: " + resp);
+
+            logger.info("Review başarıyla oluşturuldu: {}", response.body());
+
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -135,7 +142,8 @@ public class ReviewsRepositoryImpl implements ReviewsRepository {
             String url = supabaseConfig.getSupabaseUrl() + "/rest/v1/review?id=eq." + reviewId;
             String resp = httpHelper.patch(url, "{\"isViewed\": true}", "return=representation");
 
-            System.out.println("Review görüntülendi: " + resp);
+            logger.info("Review görüntülendi: {}", response.body());
+
 
         } catch (Exception e) {
             e.printStackTrace();
