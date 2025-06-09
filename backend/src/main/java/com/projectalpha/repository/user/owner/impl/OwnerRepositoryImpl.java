@@ -53,7 +53,6 @@ public class OwnerRepositoryImpl implements OwnerRepository {
 
                     return Optional.of(responseProfile) ;
                 }
-            }
         } catch (Exception e) {
             e.printStackTrace();
         }
