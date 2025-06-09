@@ -80,8 +80,7 @@ public class ReviewsRepositoryImpl implements ReviewsRepository {
             String url = supabaseConfig.getSupabaseUrl() + "/rest/v1/review";
             String resp = httpHelper.post(url, reviewsJson, "return=representation");
 
-
-            logger.info("Review başarıyla oluşturuldu: {}", response.body());
+            logger.info("Review başarıyla oluşturuldu: {}", resp);
 
 
         } catch (Exception e) {
@@ -127,8 +126,7 @@ public class ReviewsRepositoryImpl implements ReviewsRepository {
             String url = supabaseConfig.getSupabaseUrl() + "/rest/v1/business?id=eq." + businessId;
             String resp = httpHelper.patch(url, "{\"avg_rating\": " + rating + "}", "return=representation");
 
-
-            logger.info("Review başarıyla oluşturuldu: {}", response.body());
+            logger.info("Review başarıyla oluşturuldu: {}", resp);
 
 
         } catch (Exception e) {
@@ -142,7 +140,7 @@ public class ReviewsRepositoryImpl implements ReviewsRepository {
             String url = supabaseConfig.getSupabaseUrl() + "/rest/v1/review?id=eq." + reviewId;
             String resp = httpHelper.patch(url, "{\"isViewed\": true}", "return=representation");
 
-            logger.info("Review görüntülendi: {}", response.body());
+            logger.info("Review görüntülendi: {}", resp);
 
 
         } catch (Exception e) {
